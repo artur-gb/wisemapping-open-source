@@ -1,25 +1,29 @@
 FROM node:18.12.1-buster-slim AS builder
 
-# Set the working directory in the container
+# Install git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-ARG VERSION="6.0.1"
+# Clone the correct frontend repository
+RUN git clone https://github.com/NickSuomi/wisemapping-frontend.git .
 
-# Install dependencies
-RUN mkdir webapp && npm pack @wisemapping/webapp@${VERSION} && tar -xvzf wisemapping-webapp-${VERSION}.tgz -C webapp
+# Move to the webapp package (correct path!)
+WORKDIR /app/packages/webapp
 
-# Use Nginx as the production server
-FROM nginx:latest
-LABEL maintainer="Paulo Gustavo Veiga <pveiga@wisemapping.com>"
+# Install dependencies and build the app
+RUN yarn install && PUBLIC_URL=/ yarn build
 
-## Copy the built React app to Nginx's web server directory
-COPY --from=builder /app/webapp/package/dist/* /usr/share/nginx/html/
+# Final Nginx stage
+FROM nginx:alpine
 
-ADD nginx.conf .
+# Copy build output from builder
+COPY --from=builder /app/packages/webapp/dist /usr/share/nginx/html
+
+# Use custom nginx config (optional)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80 for the Nginx server
 EXPOSE 80
 
-# Start Nginx when the container runs
 CMD ["nginx", "-g", "daemon off;"]
