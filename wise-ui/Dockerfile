@@ -12,8 +12,11 @@ RUN git clone https://github.com/NickSuomi/wisemapping-frontend.git .
 # Move to the webapp package (correct path!)
 WORKDIR /app/packages/webapp
 
-# Install dependencies and build the app
-RUN yarn install && PUBLIC_URL=/ yarn build
+# Set the config type
+ENV APP_CONFIG_TYPE=file:prod
+
+# Install and build
+RUN yarn install && yarn build
 
 # Final Nginx stage
 FROM nginx:alpine
